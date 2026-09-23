@@ -3,7 +3,7 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 10, unit: 'MINUTES')
+        timeout(time: 15, unit: 'MINUTES')
 
         buildDiscarder(
             logRotator(
@@ -16,9 +16,9 @@ pipeline {
     environment {
         APP_NAME = 'jenkins-github-ci'
 
-        DEV_DIR  = '/opt/jenkins-demo/dev'
-        QA_DIR   = '/opt/jenkins-demo/qa'
-        PROD_DIR = '/opt/jenkins-demo/prod'
+        DOCKER_IMAGE = 'atullimbale/jenkins-github-ci'
+
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
     }
 
     stages {
@@ -60,43 +60,40 @@ pipeline {
             }
         }
 
-        stage('Deploy to DEV') {
+        stage('Docker Build') {
             steps {
                 sh '''
-                    rm -f ${DEV_DIR}/*.jar
-                    cp target/*.jar ${DEV_DIR}/
+                    docker build \
+                      -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                      -t ${DOCKER_IMAGE}:latest \
+                      .
                 '''
-
-                echo 'Application deployed to DEV'
             }
         }
 
-        stage('Deploy to QA') {
+        stage('Docker Push') {
             steps {
-                sh '''
-                    rm -f ${QA_DIR}/*.jar
-                    cp target/*.jar ${QA_DIR}/
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
 
-                echo 'Application deployed to QA'
-            }
-        }
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | \
+                        docker login \
+                        -u "$DOCKER_USERNAME" \
+                        --password-stdin
 
-        stage('Production Approval') {
-            steps {
-                input message: 'Deploy application to PRODUCTION?',
-                      ok: 'Deploy to Production'
-            }
-        }
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
-        stage('Deploy to PROD') {
-            steps {
-                sh '''
-                    rm -f ${PROD_DIR}/*.jar
-                    cp target/*.jar ${PROD_DIR}/
-                '''
+                        docker push ${DOCKER_IMAGE}:latest
 
-                echo 'Application deployed to PRODUCTION'
+                        docker logout
+                    '''
+                }
             }
         }
     }
