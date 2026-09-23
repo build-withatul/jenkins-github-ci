@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: jenkins-github-ci
+
+spec:
+
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: jenkins-github-ci
+
+  template:
+
+    metadata:
+      labels:
+        app: jenkins-github-ci
+
+    spec:
+
+      containers:
+
+        - name: jenkins-github-ci
+
+          image: atullimbale/jenkins-github-ci:latest
+
+          ports:
+            - containerPort: 8080
