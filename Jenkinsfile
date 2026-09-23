@@ -13,6 +13,14 @@ pipeline {
         )
     }
 
+    environment {
+        APP_NAME = 'jenkins-github-ci'
+
+        DEV_DIR  = '/opt/jenkins-demo/dev'
+        QA_DIR   = '/opt/jenkins-demo/qa'
+        PROD_DIR = '/opt/jenkins-demo/prod'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -51,16 +59,56 @@ pipeline {
                                  fingerprint: true
             }
         }
+
+        stage('Deploy to DEV') {
+            steps {
+                sh '''
+                    rm -f ${DEV_DIR}/*.jar
+                    cp target/*.jar ${DEV_DIR}/
+                '''
+
+                echo 'Application deployed to DEV'
+            }
+        }
+
+        stage('Deploy to QA') {
+            steps {
+                sh '''
+                    rm -f ${QA_DIR}/*.jar
+                    cp target/*.jar ${QA_DIR}/
+                '''
+
+                echo 'Application deployed to QA'
+            }
+        }
+
+        stage('Production Approval') {
+            steps {
+                input message: 'Deploy application to PRODUCTION?',
+                      ok: 'Deploy to Production'
+            }
+        }
+
+        stage('Deploy to PROD') {
+            steps {
+                sh '''
+                    rm -f ${PROD_DIR}/*.jar
+                    cp target/*.jar ${PROD_DIR}/
+                '''
+
+                echo 'Application deployed to PRODUCTION'
+            }
+        }
     }
 
     post {
 
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CI/CD Pipeline completed successfully!'
         }
 
         failure {
-            echo 'CI Pipeline failed!'
+            echo 'CI/CD Pipeline failed!'
         }
 
         always {
