@@ -19,6 +19,8 @@ pipeline {
         DOCKER_IMAGE = 'atullimbale/jenkins-github-ci'
 
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
+
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
 
     stages {
